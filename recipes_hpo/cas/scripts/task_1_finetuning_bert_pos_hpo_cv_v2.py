@@ -26,6 +26,8 @@ from transformers import (
     Trainer,
 )
 
+import ray
+ray.init(_temp_dir='/lustre/fsn1/projects/rech/kit/commun/ray')
 
 def main():
     args = parse_args()
@@ -152,7 +154,8 @@ def main():
         return label2id, id2label
 
     label2id, id2label = getConfig(label_list)
-
+    
+    print(args.model_name)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
     def tokenize_and_align_labels(examples):
@@ -267,9 +270,9 @@ def main():
     }
     training_args_base = {
         "output_dir": f"{args.output_dir}/{output_name}",
-        "evaluation_strategy": "steps",
+        "eval_strategy": "steps",
         "eval_steps": 0.1,
-        "save_strategy": "steps",
+        "save_strategy": "no",
         "save_steps": 0.1,
         "bf16": True,
         "push_to_hub": False,
@@ -389,7 +392,7 @@ def main():
         )
         from ray.tune.search.hyperopt import HyperOptSearch
         from ray.tune.schedulers import ASHAScheduler
-        from ray.train import CheckpointConfig
+        from ray.tune import CheckpointConfig
 
         search_alg = HyperOptSearch(
             metric="eval_" + args.metrics, mode=args.direction[0]
@@ -452,7 +455,7 @@ def main():
             search_alg=search_alg,
             scheduler=scheduler,
             hp_space=hp_space,
-            resources_per_trial={"cpu": 4, "gpu": 1},
+            resources_per_trial={"cpu": 22, "gpu": 1},
             n_trials=args.n_trials,
             checkpoint_config=CheckpointConfig(
                 checkpoint_score_attribute="eval_" + args.metrics,
@@ -492,7 +495,7 @@ def main():
         )
         shutil.rmtree(f"{args.output_dir}/{output_name}")
         shutil.rmtree("/".join(best_checkpoint.path.split("/")[:-2]))
-        shutil.rmtree("/tmp/ray/")
+        shutil.rmtree("/lustre/fsn1/projects/rech/kit/commun/ray/")
 
         print(
             f"Current best: {best_trial_number.trial_id} with eval_{args.metrics}: {best_result} at iteration {best_iteration}"

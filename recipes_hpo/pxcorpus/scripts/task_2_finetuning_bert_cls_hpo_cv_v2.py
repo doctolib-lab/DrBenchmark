@@ -31,6 +31,8 @@ from transformers import (
     TrainingArguments,
 )
 
+import ray
+ray.init(_temp_dir='/lustre/fsn1/projects/rech/kit/commun/ray/')
 
 def compute_metrics(pred):
     labels = pred.label_ids
@@ -182,9 +184,9 @@ def main():
     }
     training_args_base = {
         "output_dir": f"{args.output_dir}/{output_name}",
-        "evaluation_strategy": "steps",
+        "eval_strategy": "steps",
         "eval_steps": 0.1,
-        "save_strategy": "steps",
+        "save_strategy": "no",
         "save_steps": 0.1,
         "bf16": True,
         "push_to_hub": False,
@@ -332,7 +334,7 @@ def main():
             search_alg=search_alg,
             scheduler=scheduler,
             hp_space=hp_space,
-            resources_per_trial={"cpu": 4, "gpu": 1},
+            resources_per_trial={"cpu": 22, "gpu": 1},
             n_trials=args.n_trials,
             checkpoint_config=CheckpointConfig(
                 checkpoint_score_attribute="eval_" + args.metrics,
@@ -371,7 +373,7 @@ def main():
         )
         shutil.rmtree(f"{args.output_dir}/{output_name}")
         shutil.rmtree("/".join(best_checkpoint.path.split("/")[:-2]))
-        shutil.rmtree("/tmp/ray/")
+        shutil.rmtree("/lustre/fsn1/projects/rech/kit/commun/ray/")
         print(
             f"Current best: {best_trial_number.trial_id} with eval_{args.metrics}: {best_result} at iteration {best_iteration}"
         )
