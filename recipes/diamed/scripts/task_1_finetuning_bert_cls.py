@@ -141,7 +141,7 @@ def main():
             "metrics": classification_report(labels, predictions, output_dict=True),
             "hyperparameters": vars(args),
             "predictions": {
-                "identifiers": dataset["test"]["identifier"],
+                "identifiers": list(dataset["test"]["identifier"]),
                 "real_labels": labels.tolist(),
                 "system_predictions": predictions.tolist(),
             },

@@ -43,7 +43,8 @@ def main():
             data_dir=args.data_dir,
         )
 
-    label_list = dataset["train"].features["pos_tags"][0].names
+    # label_list = dataset["train"].features["pos_tags"][0].names
+    label_list = dataset["train"].features["pos_tags"].feature.names
 
     def getConfig(raw_labels):
 
@@ -233,7 +234,7 @@ def main():
             "metrics": cr_metric,
             "hyperparameters": vars(args),
             "predictions": {
-                "identifiers": dataset["test"]["id"],
+                "identifiers": list(dataset["test"]["id"]),
                 "real_labels": _true_labels,
                 "system_predictions": _true_predictions,
             },

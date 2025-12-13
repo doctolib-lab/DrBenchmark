@@ -180,7 +180,7 @@ def main():
             },
             "hyperparameters": vars(args),
             "predictions": {
-                "identifiers": dataset["test"]["id"],
+                "identifiers": list(dataset["test"]["id"]),
                 "real_labels": y_true,
                 "system_predictions": y_pred,
             },

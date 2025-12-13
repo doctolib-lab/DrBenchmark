@@ -232,7 +232,7 @@ def main():
             "metrics": cr_metric,
             "hyperparameters": vars(args),
             "predictions": {
-                "identifiers": dataset["test"]["id"],
+                "identifiers": list(dataset["test"]["id"]),
                 "real_labels": _true_labels,
                 "system_predictions": _true_predictions,
             },

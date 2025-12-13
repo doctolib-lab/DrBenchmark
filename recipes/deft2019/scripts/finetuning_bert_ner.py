@@ -195,7 +195,7 @@ def main():
         train_dataset=train_tokenized_datasets,
         eval_dataset=dev_tokenized_datasets,
         data_collator=data_collator,
-        processing_class=tokenizerkenizer,
+        processing_class=tokenizer,
         compute_metrics=compute_metrics,
     )
 
@@ -235,7 +235,7 @@ def main():
             "metrics": cr_metric,
             "hyperparameters": vars(args),
             "predictions": {
-                "identifiers": dataset["test"]["id"],
+                "identifiers": list(dataset["test"]["id"]),
                 "real_labels": _true_labels,
                 "system_predictions": _true_predictions,
             },
