@@ -34,8 +34,8 @@ def parse_args():
     parser.add_argument("--fewshot", type=float, required=False,
                         help="Percentage of the train subset used during training", default=1.0)
     parser.add_argument("--offline", type=bool, required=False, help="Use local huggingface dataset", default=False)
-    parser.add_argument("--metrics", type=bool, required=False, help="Main metric for the task ")
-    parser.add_argument("--direction", type=bool, required=False, help="Direction the metric needs to be optimized")
+    parser.add_argument("--metrics", type=str, required=False, help="Main metric for the task ")
+    parser.add_argument("--direction", type=str, required=False, help="Direction the metric needs to be optimized")
     parser.add_argument("--num_train_epochs",                  type=str,   required=False, help="Training epochs")
     parser.add_argument("--gradient_accumulation_steps",                  type=str,   required=False, help="Gradient accumulation steps")
     parser.add_argument("--warmup_ratio",                  type=str,   required=False, help="Warmup ratio")

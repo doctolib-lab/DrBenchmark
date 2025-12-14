@@ -24,7 +24,8 @@ from transformers import DataCollatorForTokenClassification
 from transformers import AutoModelForTokenClassification, TrainingArguments, Trainer
 
 import ray
-ray.init(_temp_dir='/lustre/fsn1/projects/rech/kit/commun/ray/')
+tmp_dir = os.environ.get("RAY_TMPDIR")
+ray.init(_temp_dir=tmp_dir, include_dashboard=False) if tmp_dir else ray.init(include_dashboard=False)
 
 def main():
     args = parse_args()
@@ -57,7 +58,8 @@ def main():
 
     # Retrieve past best_hp_trial, if any:
     # Define the search pattern
-    search_pattern = "../runs/*_fold*.json"
+    # search_pattern = "../runs/*_fold*.json"
+    search_pattern = f"../runs/DrBenchmark-QUAERO-ner-{args.subset}-*_fold*.json"
     do_hpo = True
 
     # Use glob to find matching files
@@ -248,7 +250,8 @@ def main():
         "output_dir": f"{args.output_dir}/{output_name}",
         "eval_strategy": "steps",
         "eval_steps": 0.1,
-        "save_strategy": "no",
+        # "save_strategy": "no",
+        "save_strategy": "steps",
         "save_steps": 0.1,
         "bf16": True,
         "push_to_hub": False,
@@ -284,9 +287,10 @@ def main():
             from ray import tune
 
             return {
-                "per_device_train_batch_size": eval(args.per_device_train_batch_size),
+                # "per_device_train_batch_size": eval(args.per_device_train_batch_size),
                 "learning_rate": eval(args.learning_rate),
                 "num_train_epochs": eval(args.num_train_epochs),
+                "gradient_accumulation_steps": eval(args.gradient_accumulation_steps),
                 "weight_decay": eval(args.weight_decay),
                 "warmup_ratio": eval(args.warmup_ratio),
                 "dropout": eval(args.dropout),
@@ -388,6 +392,10 @@ def main():
         )
         from ray import tune
 
+        ray_results_dir = os.environ.get("RAY_RESULTS_DIR")
+        if ray_results_dir:
+            os.makedirs(ray_results_dir, exist_ok=True)
+
         class CleanupCallback(tune.Callback):
             def on_trial_complete(self, iteration, trials, trial, **info):
                 trials_current_best = max(
@@ -443,6 +451,7 @@ def main():
                 num_to_keep=1,
                 checkpoint_score_order=args.direction[0],
             ),
+            storage_path=ray_results_dir,
             callbacks=[CleanupCallback()],
         )
 
@@ -476,7 +485,8 @@ def main():
         )
         shutil.rmtree(f"{args.output_dir}/{output_name}")
         shutil.rmtree("/".join(best_checkpoint.path.split("/")[:-2]))
-        shutil.rmtree("/lustre/fsn1/projects/rech/kit/commun/ray/")
+        # shutil.rmtree("/lustre/fsn1/projects/rech/kit/commun/ray/")
+        ray.shutdown()
         print(
             f"Current best: {best_trial_number.trial_id} with eval_{args.metrics}: {best_result} at iteration {best_iteration}"
         )

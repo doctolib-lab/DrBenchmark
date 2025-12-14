@@ -37,15 +37,14 @@ def parse_args():
     parser.add_argument("--metrics", type=str, required=False, help="Main metric for the task ")
     parser.add_argument("--direction", type=str, required=False, help="Direction the metric needs to be optimized")
     parser.add_argument("--num_train_epochs",                  type=str,   required=False, help="Training epochs")
-    parser.add_argument("--gradient_accumulation_steps",       type=str,   required=False, help="Gradient accumulation steps")
     parser.add_argument("--warmup_ratio",                  type=str,   required=False, help="Warmup ratio")
     parser.add_argument("--dropout",                  type=str,   required=False, help="Dropout")
+    parser.add_argument("--gradient_accumulation_steps",                  type=str,   required=False, help="Gradient accumulation steps")
     parser.add_argument("--reduction_factor",                  type=int,   required=False, help="Reduction factor")
     parser.add_argument("--grace_period",                  type=int,   required=False, help="Grace period")
     parser.add_argument("--max_t",                  type=int,   required=False, help="Max of iteration before stopping a trial")
     parser.add_argument("--n_trials",                  type=int,   required=False, help="Number of trials")
     parser.add_argument("--fold",                  type=int,   required=False, help="Number of trials", default=1)
-
 
     args = parser.parse_args()
     args = vars(args)
@@ -56,7 +55,6 @@ def parse_args():
     args_yaml = yaml.load(open(args["config"]), Loader=yaml.FullLoader)
 
     for k in args.keys():
-
         if args[k] == None:
             args[k] = args_yaml[k]
 
@@ -71,3 +69,4 @@ def parse_args():
     print(f">> Model path: >>{args['model_name']}<<")
 
     return Namespace(**args)
+
