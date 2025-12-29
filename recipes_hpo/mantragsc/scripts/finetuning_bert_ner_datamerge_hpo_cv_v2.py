@@ -156,7 +156,7 @@ def main():
     # Retrieve past best_hp_trial, if any:
     # Define the search pattern
     # search_pattern = "../runs/*_fold*.json"
-    search_pattern = f"../runs/DrBenchmark-MANTRAGSC-{args.subset}-ner*_fold*.json"
+    search_pattern = f"../runs/DrBenchmark-MANTRAGSC-ner-{args.subset}-*_hpo.json"
     do_hpo = True
 
     # Use glob to find matching files
@@ -204,6 +204,20 @@ def main():
         [dataset["validation"].shard(num_shards=2, index=0), dataset["train"]]
     )
     dataset["validation"] = dataset["validation"].shard(num_shards=2, index=1)
+
+    # Apply dedup to each split; ensure test is unique, then reuse the same filter for val/train
+    seen = set()
+
+    def dedup(example):
+        key = tuple(example["tokens"])
+        if key in seen:
+            return False
+        seen.add(key)
+        return True
+
+    dataset["test"] = dataset["test"].filter(dedup)
+    dataset["validation"] = dataset["validation"].filter(dedup)
+    dataset["train"] = dataset["train"].filter(dedup)
 
     train_dataset = dataset["train"]
     dev_dataset = dataset["validation"]
@@ -317,9 +331,9 @@ def main():
 
     train_tokenized_datasets = (
         train_dataset.map(tokenize_and_align_labels, batched=True, keep_in_memory=True)
-        .shuffle(seed=42)
-        .shuffle(seed=42)
-        .shuffle(seed=42)
+        .shuffle(seed=args.seed)
+        .shuffle(seed=args.seed)
+        .shuffle(seed=args.seed)
     )
     if args.fewshot != 1.0:
         train_tokenized_datasets = train_tokenized_datasets.select(
@@ -333,7 +347,7 @@ def main():
     )
 
     os.makedirs(args.output_dir, exist_ok=True)
-    output_name = f"DrBenchmark-MANTRAGSC-{args.subset}-ner-{str(uuid.uuid4().hex)}_fold={args.fold}"
+    output_name = f"DrBenchmark-MANTRAGSC-ner-{args.subset}-{str(uuid.uuid4().hex)}"
 
     training_args = {
         k: v
@@ -346,6 +360,7 @@ def main():
             "weight_decay",
             "warmup_ratio",
             "gradient_accumulation_steps",
+            "seed",
         ]
     }
     training_args_base = {
@@ -359,6 +374,8 @@ def main():
         "push_to_hub": False,
         "metric_for_best_model": args.metrics,
         "greater_is_better": True if args.direction[0] == "max" else False,
+        "seed": args.seed,
+        "load_best_model_at_end": True,
     }
     training_args = {**training_args_base, **training_args}
     training_args = TrainingArguments(
@@ -624,7 +641,9 @@ def main():
         if isinstance(object, np.generic):
             return object.item()
 
-    with open(f"../runs/{output_name}_hpo.json", "w", encoding="utf-8") as f:
+    file_suffix = "hpo" if do_hpo else "train"
+    results_file = f"../runs/{output_name}_{file_suffix}.json"
+    with open(results_file, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "model_name": f"{args.output_dir}/{output_name}_best_model",
@@ -638,12 +657,14 @@ def main():
                     "real_labels": _true_labels,
                     "system_predictions": _true_predictions,
                 },
+                "run_seed": args.seed,
             },
             f,
             ensure_ascii=False,
             indent=4,
             default=np_encoder,
         )
+    print(f"Saved results to {results_file}")
 
 
 if __name__ == "__main__":

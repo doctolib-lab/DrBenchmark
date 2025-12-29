@@ -45,6 +45,7 @@ def parse_args():
     parser.add_argument("--max_t",                  type=int,   required=False, help="Max of iteration before stopping a trial")
     parser.add_argument("--n_trials",                  type=int,   required=False, help="Number of trials")
     parser.add_argument("--fold",                  type=int,   required=False, help="Number of trials", default=1)
+    parser.add_argument("--seed", type=int, required=False, help="Random seed used for training runs", default=42)
 
 
     args = parser.parse_args()

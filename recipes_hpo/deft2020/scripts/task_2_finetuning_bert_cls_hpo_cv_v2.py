@@ -13,7 +13,7 @@ import json
 import logging
 
 import numpy as np
-from datasets import load_dataset, load_from_disk, concatenate_datasets
+from datasets import load_dataset, load_from_disk
 
 from utils_hpo_cls import parse_args
 
@@ -69,15 +69,16 @@ def main():
             data_dir=args.data_dir,
         )
 
-    args.fold -= 1
     # Retrieve past best_hp_trial, if any:
     # Define the search pattern
-    # search_pattern = "../runs/*_fold*.json"
-    search_pattern = "../runs/DrBenchmark-DEFT2020-cls*_fold*.json"
+    search_pattern = f"../runs/DrBenchmark-DEFT2020-cls-{args.subset}-*_hpo.json"
     do_hpo = True
+    best_hp_trial = None
 
     # Use glob to find matching files
-    matching_files = glob.glob(search_pattern)
+    matching_files = sorted(
+        glob.glob(search_pattern), key=os.path.getmtime, reverse=True
+    )
 
     for file in matching_files:
         with open(file, "r", encoding="utf-8") as f:
@@ -86,19 +87,15 @@ def main():
         model = data_fold["hpo_settings"]["model_name"].split("/")[-1]
         if model != args.model_name.split("/")[-1]:
             continue
-        if data_fold["hpo_settings"]["fold"] != args.fold:
+        best_hp_trial = data_fold.get("best_hp_trial")
+        if best_hp_trial is None:
             continue
-
-        best_hp_trial = data_fold["best_hp_trial"]
         for key, value in best_hp_trial.items():
             setattr(args, key, value)
         do_hpo = False
+        break
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=True)
-
-    dataset = concatenate_datasets(
-        [dataset["train"], dataset["validation"], dataset["test"]]
-    )
 
     seen = set()
 
@@ -146,34 +143,11 @@ def main():
             seen.add(v)
         return True
 
-    dataset = dataset.filter(is_unique)
+    dataset["test"] = dataset["test"].filter(is_unique)
+    dataset["validation"] = dataset["validation"].filter(is_unique)
+    dataset["train"] = dataset["train"].filter(is_unique)
 
-    labels_list = dataset.features["correct_cible"].names
-
-    #  Shuffle the dataset
-    dataset = dataset.shuffle(seed=42)
-
-    # Create 5 shards (folds)
-    num_folds = 5
-    shards = [dataset.shard(num_shards=num_folds, index=i) for i in range(num_folds)]
-
-    # Allocate each shard to a split
-    dataset = {
-        "test": shards[args.fold],
-        "validation": shards[(args.fold + 1) % num_folds],
-        "train": concatenate_datasets(
-            [
-                shards[(args.fold + 2) % num_folds],
-                shards[(args.fold + 3) % num_folds],
-                shards[(args.fold + 4) % num_folds],
-            ]
-        ),
-    }
-    # In order to get 10% of  validation set, we allocate half of the validation set to the training set
-    dataset["train"] = concatenate_datasets(
-        [dataset["validation"].shard(num_shards=2, index=0), dataset["train"]]
-    )
-    dataset["validation"] = dataset["validation"].shard(num_shards=2, index=1)
+    labels_list = dataset["train"].features["correct_cible"].names
 
     def preprocess_function(e):
         res = {
@@ -268,9 +242,9 @@ def main():
     dataset_train = (
         dataset["train"]
         .map(preprocess_function, batched=False)
-        .shuffle(seed=42)
-        .shuffle(seed=42)
-        .shuffle(seed=42)
+        .shuffle(seed=args.seed)
+        .shuffle(seed=args.seed)
+        .shuffle(seed=args.seed)
     )
     if args.fewshot != 1.0:
         dataset_train = dataset_train.select(
@@ -280,7 +254,7 @@ def main():
 
     dataset_test = dataset["test"].map(preprocess_function, batched=False)
     with open(
-        f"../runs/test_sets_" + str(args.fold) + ".json", "w", encoding="utf-8"
+        f"../runs/test_sets.json", "w", encoding="utf-8"
     ) as f:
         to_write = []
         for i in dataset_test:
@@ -299,7 +273,7 @@ def main():
     dataset_test_ids = list(dataset["test"]["id"])
 
     os.makedirs(args.output_dir, exist_ok=True)
-    output_name = f"DrBenchmark-DEFT2020-cls-{str(uuid.uuid4().hex)}_fold={args.fold}"
+    output_name = f"DrBenchmark-DEFT2020-cls-{args.subset}-{str(uuid.uuid4().hex)}"
 
     training_args = {
         k: v
@@ -311,6 +285,7 @@ def main():
             "num_train_epochs",
             "weight_decay",
             "warmup_ratio",
+            "seed",
         ]
     }
     training_args_base = {
@@ -324,6 +299,8 @@ def main():
         "push_to_hub": False,
         "metric_for_best_model": args.metrics,
         "greater_is_better": True if args.direction[0] == "max" else False,
+        "seed": args.seed,
+        "load_best_model_at_end": True,
     }
     training_args = {**training_args_base, **training_args}
     training_args = TrainingArguments(
@@ -549,7 +526,9 @@ def main():
     )
     print(f1_score)
 
-    with open(f"../runs/{output_name}_hpo.json", "w", encoding="utf-8") as f:
+    file_suffix = "hpo" if do_hpo else "train"
+    results_file = f"../runs/{output_name}_{file_suffix}.json"
+    with open(results_file, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "model_name": f"{args.output_dir}/{output_name}_best_model",
@@ -563,11 +542,13 @@ def main():
                     "real_labels": labels.tolist(),
                     "system_predictions": predictions.tolist(),
                 },
+                "run_seed": args.seed,
             },
             f,
             ensure_ascii=False,
             indent=4,
         )
+    print(f"Saved results to {results_file}")
 
 
 if __name__ == "__main__":

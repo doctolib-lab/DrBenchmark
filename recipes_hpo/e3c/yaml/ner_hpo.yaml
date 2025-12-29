@@ -15,4 +15,5 @@ dropout: tune.uniform(0, .5)
 reduction_factor: 2
 grace_period: 2
 max_t: 100
-n_trials: 10
+# n_trials: 10
+n_trials: 20

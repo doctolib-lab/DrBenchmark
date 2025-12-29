@@ -18,4 +18,3 @@ reduction_factor: 2
 grace_period: 4
 max_t: 100
 n_trials: 20
-#n_trials: 2

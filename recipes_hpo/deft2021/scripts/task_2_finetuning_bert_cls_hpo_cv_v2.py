@@ -79,12 +79,13 @@ def main():
             data_dir=args.data_dir,
         )
 
-    args.fold -= 1
     # Retrieve past best_hp_trial, if any:
-    # search_pattern = "../runs/*_fold*.json"
-    search_pattern = "../runs/DrBenchmark-DEFT2021-cls*_fold*.json"
+    search_pattern = f"../runs/DrBenchmark-DEFT2021-cls-{args.subset}-*_hpo.json"
     do_hpo = True
-    matching_files = glob.glob(search_pattern)
+    best_hp_trial = None
+    matching_files = sorted(
+        glob.glob(search_pattern), key=os.path.getmtime, reverse=True
+    )
 
     for file in matching_files:
         with open(file, "r", encoding="utf-8") as f:
@@ -92,42 +93,31 @@ def main():
         model = data_fold["hpo_settings"]["model_name"].split("/")[-1]
         if model != args.model_name.split("/")[-1]:
             continue
-        if data_fold["hpo_settings"]["fold"] != args.fold:
+        best_hp_trial = data_fold.get("best_hp_trial")
+        if best_hp_trial is None:
             continue
-        best_hp_trial = data_fold["best_hp_trial"]
         for key, value in best_hp_trial.items():
             setattr(args, key, value)
         do_hpo = False
+        break
 
-    # Concatenate splits and shuffle
-    dataset = concatenate_datasets(
-        [dataset["train"], dataset["validation"], dataset["test"]]
-    ).shuffle(seed=42)
-
-    # Create 5 shards (folds)
-    num_folds = 5
-    shards = [dataset.shard(num_shards=num_folds, index=i) for i in range(num_folds)]
-
-    # Allocate each shard to a split
-    dataset = {
-        "test": shards[args.fold],
-        "validation": shards[(args.fold + 1) % num_folds],
-        "train": concatenate_datasets(
-            [
-                shards[(args.fold + 2) % num_folds],
-                shards[(args.fold + 3) % num_folds],
-                shards[(args.fold + 4) % num_folds],
-            ]
-        ),
-    }
-    # Keep ~10% validation: split validation, half into train
-    dataset["train"] = concatenate_datasets(
-        [dataset["validation"].shard(num_shards=2, index=0), dataset["train"]]
-    )
-    dataset["validation"] = dataset["validation"].shard(num_shards=2, index=1)
 
     # Get label space
     labels_list = dataset["train"].features["specialities"].feature.names
+
+    # Remove duplicates based on text
+    seen = set()
+
+    def duplicate_filter(example):
+        if example["text"] in seen:
+            return False
+        seen.add(example["text"])
+        return True
+
+    # Clean test first and use it to deduplicate train/validation against it
+    dataset["test"] = dataset["test"].filter(duplicate_filter)
+    dataset["validation"] = dataset["validation"].filter(duplicate_filter)
+    dataset["train"] = dataset["train"].filter(duplicate_filter)
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
@@ -141,7 +131,7 @@ def main():
         res["labels"] = e["specialities_one_hot"]
         return res
 
-    dataset_train = dataset["train"].map(preprocess_function, batched=False).shuffle(seed=42).shuffle(seed=42).shuffle(seed=42)
+    dataset_train = dataset["train"].map(preprocess_function, batched=False).shuffle(seed=args.seed).shuffle(seed=args.seed).shuffle(seed=args.seed)
     if args.fewshot != 1.0:
         dataset_train = dataset_train.select(range(int(len(dataset_train) * args.fewshot)))
     dataset_train = dataset_train.remove_columns(["text", "id", "specialities"])
@@ -157,7 +147,7 @@ def main():
     dataset_test.set_format("torch")
 
     os.makedirs(args.output_dir, exist_ok=True)
-    output_name = f"DrBenchmark-DEFT2021-cls-{uuid.uuid4()}_fold={args.fold}"
+    output_name = f"DrBenchmark-DEFT2021-cls-{args.subset}-{uuid.uuid4().hex}"
 
     training_args = {
         k: v
@@ -170,6 +160,7 @@ def main():
             "weight_decay",
             "warmup_ratio",
             "gradient_accumulation_steps",
+            "seed",
         ]
     }
     training_args_base = {
@@ -183,6 +174,8 @@ def main():
         "push_to_hub": False,
         "metric_for_best_model": args.metrics,
         "greater_is_better": True if args.direction[0] == "max" else False,
+        "seed": args.seed,
+        "load_best_model_at_end": True,
     }
     training_args = {**training_args_base, **training_args}
     training_args = TrainingArguments(
@@ -395,7 +388,9 @@ def main():
         if isinstance(object, np.generic):
             return object.item()
 
-    with open(f"../runs/{output_name}_hpo.json", "w", encoding="utf-8") as f:
+    file_suffix = "hpo" if do_hpo else "train"
+    results_file = f"../runs/{output_name}_{file_suffix}.json"
+    with open(results_file, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "model_name": f"{args.output_dir}/{output_name}_best_model",
@@ -406,15 +401,17 @@ def main():
                 else best_trial.hyperparameters,
                 "predictions": {
                     "identifiers": dataset_test_ids,
-                "real_labels": labels.tolist(),
-                "system_predictions": y_pred.tolist(),
+                    "real_labels": labels.tolist(),
+                    "system_predictions": y_pred.tolist(),
                 },
+                "run_seed": args.seed,
             },
             f,
             ensure_ascii=False,
             indent=4,
             default=np_encoder,
         )
+    print(f"Saved results to {results_file}")
 
 
 if __name__ == "__main__":
