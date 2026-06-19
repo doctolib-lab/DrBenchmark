@@ -1,0 +1,14 @@
+# DrBenchmark dependencies used for the DoctoBERT release (PyTorch installed separately).
+datasets==3.6.0
+hf-xet==1.2.0
+huggingface-hub==0.36.0
+hyperopt==0.2.7
+py4j==0.10.9.9
+pyarrow==23.0.0
+ray==2.48.0
+seqeval==1.2.2
+syntok==1.4.4
+tensorboardX==2.6.4
+tokenizers==0.22.1
+transformers==4.57.6
+typer-slim==0.21.1

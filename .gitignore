@@ -1,2 +1,15 @@
-./hf_datasets/
-./hf_datasets/*
+# Cursor
+._*
+
+.claude/
+
+__pycache__/
+
+hf_datasets/
+
+tensorboard/
+mlruns/
+runs/
+logs/
+
+tmp*

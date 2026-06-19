@@ -4,6 +4,42 @@
 
 # DrBenchmark: A Large Language Understanding Evaluation Benchmark for French Biomedical Domain
 
+## Usage (this fork)
+
+This is a fork of [DrBenchmark](https://github.com/DrBenchmark/DrBenchmark), adapted for the DoctoBERT release with per-task hyperparameter-optimization (HPO) recipes, parallel SLURM launchers, and aggregation tooling.
+
+### Environment
+
+PyTorch is expected to be already installed; install the remaining dependencies with:
+
+```bash
+pip install -r requirements_doctobert.txt
+```
+
+### Recipe sets
+
+- `recipes/`: the original DrBenchmark recipes (one fixed configuration per task).
+- `recipes_hpo/` (ours): HPO recipes with fixed validation and multiple test seeds. Hyperparameters are tuned on the validation split, then the mean over several seeds is reported. This is the setup used for our results.
+- `recipes_hpo_cv/`: copied and adapted from [TransBERT's DrBenchmark](https://github.com/jknafou/TransBERT/tree/main/DrBenchmark), using cross-validation for HPO instead of a fixed validation split.
+
+### Run
+
+**1. Launch HPO finetuning (in parallel).** Edit the model list at the top of `run_hpo_array_submit_all.sh`, then:
+
+```bash
+bash run_hpo_array_submit_all.sh
+```
+
+For each model it submits a SLURM array job that finetunes all tasks in parallel with HPO (throttled by `MAX_CONCURRENT`, default 10).
+
+**2. Aggregate the results.**
+
+```bash
+python tools/AggregateMetricsFromRuns.py recipes_hpo
+```
+
+This computes per-task means and cross-task aggregates (Z-score, Min-Max, rank, bootstrap Win-Probability) directly over the individual runs.
+
 ## Abstract
 
 The biomedical domain has sparked a significant interest in the field of Natural Language Processing (NLP), which has seen substantial advancements with pre-trained language models (PLMs). However, comparing these models has proven challenging due to variations in evaluation protocols across different models. A fair solution is to aggregate diverse downstream tasks into a benchmark, allowing for the assessment of intrinsic PLMs qualities from various perspectives. Although still limited to few languages, this initiative has been undertaken in the biomedical field, notably English and Chinese. This limitation hampers the evaluation of the latest French biomedical models, as they are either assessed on a minimal number of tasks with non-standardized protocols or evaluated using general downstream tasks. To bridge this research gap and account for the unique sensitivities of French, we present the first-ever publicly available French biomedical language understanding benchmark called DrBenchmark. It encompasses 20 diversified tasks, including named-entity recognition, part-of-speech tagging, question-answering, semantic textual similarity, and classification. We evaluate 8 state-of-the-art pre-trained masked language models (MLMs) on general and biomedical-specific data, as well as English specific MLMs to assess their cross-lingual capabilities. Our experiments reveal that no single model excels across all tasks, while generalist models are sometimes still competitive.

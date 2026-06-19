@@ -1,10 +1,16 @@
 import os
+import sys
 import json
+import statistics
 from glob import glob
 
-path = "./recipes/"
-dirs = [ f.path for f in os.scandir(path) if f.is_dir() ]
-print(dirs)
+# Allow passing base directory (e.g., ./recipes or ./recipes_hpo)
+path = sys.argv[1] if len(sys.argv) > 1 else "./recipes/"
+path = path.rstrip("/") + "/"
+run_label = os.path.basename(os.path.normpath(path)) or "recipes"
+
+dirs = [f.path for f in os.scandir(path) if f.is_dir()]
+# print(dirs)
 
 def contains(p, t):
     return p.find(t) != -1
@@ -16,19 +22,29 @@ for d in dirs:
     if "__pycache__" in d:
         continue
 
+    # Skip mantragsc directories entirely
+    # if contains(d, "/mantragsc/") or d.endswith("mantragsc"):
+    #     print(f"Skipping mantragsc directory: {d}")
+    #     continue
+
     print(d)
 
     d_path = f"{d}/runs/"
     files = [ f.path for f in os.scandir(d_path) if f.is_file() and str(f).find(".json") != -1 ]
-    print(files)
+    # print(files)
 
     for file_path in files:
+        # print(file_path)
 
         f_json = open(file_path, "r")
         data = json.load(f_json)
         f_json.close()
 
-        print(file_path)
+        if not isinstance(data, dict):
+            print(f"Skipping {file_path}: not a dictionary")
+            continue
+
+        # print(file_path)
         corpus = ""
         task = ""
 
@@ -76,7 +92,7 @@ for d in dirs:
         elif contains(file_path, "/frenchmedmcqa/"):
             corpus = "frenchmedmcqa"
         elif contains(file_path, "/mantragsc/"):
-            corpus = "mantragsc"
+            corpus = "mantragsc"  # REMOVED MANTRAGSC
         elif contains(file_path, "/morfitt/"):            
             corpus = "morfitt"
         elif contains(file_path, "/quaero/"):
@@ -90,15 +106,26 @@ for d in dirs:
         elif contains(file_path, "/deft2021/"):
             corpus = "deft2021"
 
-        model_name = data["hyperparameters"]["model_name"]
+        # Skip mantragsc corpus just in case
+        # if corpus == "mantragsc":
+        #     continue
+
+        # Handle both recipes (hyperparameters) and recipes_hpo (hpo_settings)
+        hp = data.get("hyperparameters") or data.get("hpo_settings")
+        if hp is None:
+            raise ValueError(f"No hyperparameters/hpo_settings found in {file_path}")
+
+        model_name = hp.get("model_name")
+        if model_name is None:
+            raise ValueError(f"No model_name found in {file_path}")
 
         if model_name.find("../../../models/") == -1:
             continue
 
-        fewshot = data["hyperparameters"]["fewshot"]
+        fewshot = hp.get("fewshot", 1.0)
         key = f"{corpus}|{task}|{fewshot}"
         
-        print(key + "-" + model_name)
+        # print(key + "-" + model_name)
 
         if model_name not in results:
             results[model_name] = {}
@@ -135,14 +162,17 @@ for d in dirs:
             results[model_name][key]["edrm"].append(data["metrics"]["EDRM"])
             results[model_name][key]["spearman_correlation_coef"].append(data["metrics"]["spearman_correlation_coef"])
 
-with open("./stats/results.json", 'w') as f:
+stats_dir = f"./stats/{run_label}"
+os.makedirs(stats_dir, exist_ok=True)
+
+with open(f"{stats_dir}/results.json", 'w') as f:
     json.dump(results, f, indent=4)
 
 avg_results = {}
 
 for model in results:
     
-    print(model)
+    # print(model)
 
     if model not in avg_results:
         avg_results[model] = {}
@@ -155,17 +185,75 @@ for model in results:
         if task not in avg_results[model]:
             avg_results[model][task] = {}
         
-        print(task)
+        # print(task)
 
         for metric in results[model][task].keys():
 
-            avg = sum(results[model][task][metric]) / len(results[model][task][metric])
-            print(">> ", metric , "-", avg)
+            # print(f"Processing {model} - {task} - {metric}")
+
+            values = results[model][task][metric]
+            avg = sum(values) / len(values)
+            std = statistics.stdev(values) if len(values) > 1 else 0.0
+            num_runs = len(values)
+            
+            # print(">> ", metric , "- avg:", avg, "std:", std, "runs:", num_runs)
 
             if metric not in avg_results[model][task]:
-                avg_results[model][task][metric] = -1
+                avg_results[model][task][metric] = {}
             
-            avg_results[model][task][metric] = avg
+            avg_results[model][task][metric] = {
+                "avg": avg,
+                "std": std,
+                "num_runs": num_runs
+            }
 
-with open("./stats/overall_averaged_metrics.json", 'w') as f:
+with open(f"{stats_dir}/overall_averaged_metrics.json", 'w') as f:
     json.dump(avg_results, f, indent=4)
+
+# Print summary of runs BY MODEL
+print("\n" + "="*60)
+print("SUMMARY: Number of runs BY MODEL")
+print("="*60)
+
+model_run_summary = {}
+
+for model in avg_results:
+    model_run_summary[model] = {
+        "total_runs": 0,
+        "total_tasks": 0,
+        "tasks_detail": {}
+    }
+    
+    for task in avg_results[model]:
+        # Get the number of runs from the first metric (they should all be the same for a given task)
+        first_metric = list(avg_results[model][task].keys())[0]
+        runs_for_task = avg_results[model][task][first_metric]["num_runs"]
+        
+        model_run_summary[model]["total_runs"] += runs_for_task
+        model_run_summary[model]["total_tasks"] += 1
+        model_run_summary[model]["tasks_detail"][task] = runs_for_task
+
+# Sort models by total number of runs (descending)
+sorted_models = sorted(model_run_summary.items(), key=lambda x: x[1]["total_runs"], reverse=True)
+
+for model, summary in sorted_models:
+    print(f"\n📊 Model: {model}")
+    print(f"   Total runs: {summary['total_runs']}")
+    print(f"   Total tasks: {summary['total_tasks']}")
+    print(f"   Average runs per task: {summary['total_runs'] / summary['total_tasks']:.1f}")
+    
+    print("   Task breakdown:")
+    for task, runs in summary["tasks_detail"].items():
+        print(f"     • {task}: {runs} runs")
+
+print(f"\n📈 OVERALL STATISTICS:")
+print(f"   Total models: {len(model_run_summary)}")
+total_all_runs = sum(summary["total_runs"] for summary in model_run_summary.values())
+print(f"   Total runs across all models: {total_all_runs}")
+avg_runs_per_model = total_all_runs / len(model_run_summary)
+print(f"   Average runs per model: {avg_runs_per_model:.1f}")
+
+with open(f"{stats_dir}/model_run_summary.json", 'w') as f:
+    json.dump(model_run_summary, f, indent=4)
+
+print(f"\n💾 Model run summary saved to: {stats_dir}/model_run_summary.json")
