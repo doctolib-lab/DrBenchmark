@@ -10,7 +10,7 @@ TOKEN_COLUMN = "tokens"
 
 
 def prepare_datasets(cfg, tokenizer):
-    splits = data.load_splits(cfg)
+    splits = data.load_splits(cfg, TOKEN_COLUMN)
     label_list = label_names(splits["train"].features[cfg.label_column])
     negative_id = label_list.index("O") if "O" in label_list else None
     train, val, test = data.dedup(

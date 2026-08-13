@@ -96,9 +96,10 @@ def _validate(cfg):
         _fail(f"keys present in both search_space and fixed: {sorted(overlap)}")
     if not (ROOT / cfg.hf_loader).exists():
         _fail(f"loader not found: {cfg.hf_loader}")
-    for key in ("merge_subsets", "hooks"):
-        if getattr(cfg, key):
-            _fail(f"{key} is declared but not implemented yet")
+    if cfg.merge_subsets and cfg.subset in cfg.merge_subsets:
+        _fail(f"subset {cfg.subset!r} names the pooled corpus, not one of merge_subsets")
+    if cfg.hooks:
+        _fail("hooks is declared but not implemented yet")
 
 
 def parse_args():
