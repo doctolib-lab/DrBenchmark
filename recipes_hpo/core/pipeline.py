@@ -35,7 +35,7 @@ def run(cfg, family):
     collator = family.build_collator(cfg, tokenizer)
     compute_metrics, report = family.build_metrics(cfg, label_list, cfg.output_name)
 
-    best_hp = _load_best_hp(cfg)
+    best_hp = None if cfg.debug else _load_best_hp(cfg)
     do_hpo = best_hp is None
     run_dir, best_model_dir = _dirs(cfg)
     cfg.save_dir.mkdir(parents=True, exist_ok=True)
@@ -230,7 +230,9 @@ def _search(cfg, family, base, label_list, train, val, collator, tokenizer, comp
 
 
 def _dump(cfg, metrics, best_hp, preds, refs, test, do_hpo, best_model_dir, precision):
-    cfg.runs_dir.mkdir(parents=True, exist_ok=True)
+    # a debug run is kept out of the glob that feeds HPO reuse and the stats
+    runs_dir = cfg.runs_dir / "debug" if cfg.debug else cfg.runs_dir
+    runs_dir.mkdir(parents=True, exist_ok=True)
     identifiers = (
         list(test["id"]) if "id" in test.column_names else list(range(len(test)))
     )
@@ -260,7 +262,7 @@ def _dump(cfg, metrics, best_hp, preds, refs, test, do_hpo, best_model_dir, prec
         "run_seed": cfg.seed,
     }
     suffix = "hpo" if do_hpo else "train"
-    path = cfg.runs_dir / f"{cfg.output_name}_{suffix}.json"
+    path = runs_dir / f"{cfg.output_name}_{suffix}.json"
     path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=4, default=_encode),
         encoding="utf-8",

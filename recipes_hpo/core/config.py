@@ -1,4 +1,5 @@
 import argparse
+import os
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,6 +20,8 @@ FAMILIES = {
 MODEL_HP = {"dropout"}
 
 DEDUP_SCOPES = {"none", "cascade", "against_test"}
+
+DEBUG = os.environ.get("DEBUG", "0") not in ("0", "")
 
 
 def _fail(message):
@@ -75,6 +78,10 @@ def load(config_path, model_id, seed):
         else model_id
     )
     cfg.output_name = f"{cfg.corpus}-{cfg.task}-{cfg.subset}-{uuid.uuid4().hex}"
+    cfg.debug = DEBUG
+    if DEBUG:
+        cfg.n_trials = 1
+        print("DEBUG: 1 trial, no hyperparameter reuse, run JSON written to runs/debug/")
     return cfg
 
 

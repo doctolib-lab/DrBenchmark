@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Usage: run_recipe.sh <config.yaml> <model>
 # One HPO pass (retried), then N_RUNS-1 seed passes reusing the best hyperparameters.
+# DEBUG=1 reduces that to a single pass; core/config.py reduces the search to one trial.
 
 CONFIG="$1"
 MODEL="$2"
@@ -14,6 +15,10 @@ RUN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run.py"
 if [ -z "$CONFIG" ] || [ -z "$MODEL" ]; then
   echo "usage: run_recipe.sh <config.yaml> <model>"
   exit 1
+fi
+
+if [ "${DEBUG:-0}" != "0" ]; then
+  N_RUNS=1
 fi
 
 attempt=1

@@ -2,6 +2,7 @@
 # Usage: run_bench.sh <model> [lang|all]
 # The recipe tree is the task manifest: every recipes_hpo/<lang>/<corpus>/*_hpo.yaml is a task.
 # Set TASK_INDEX=<n> to run only the nth config (SLURM array element).
+# Set DEBUG=1 for a smoke run: one HPO trial, one seed, run JSONs kept in runs/debug/.
 
 set -u
 
