@@ -14,7 +14,10 @@ from core import pipeline
 from core.config import parse_args
 
 # families migrated to core/ so far
-IMPLEMENTED = {"token_classification": "core.families.token_classification"}
+IMPLEMENTED = {
+    "token_classification": "core.families.token_classification",
+    "sequence_classification": "core.families.sequence_classification",
+}
 
 
 def main():

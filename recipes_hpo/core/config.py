@@ -47,6 +47,8 @@ def load(config_path, model_id, seed):
         lang=raw["lang"],
         hf_loader=raw["hf_loader"],
         label_column=raw["label_column"],
+        text_columns=raw.get("text_columns", []),
+        text_separator=raw.get("text_separator", " "),
         max_position_embeddings=raw["max_position_embeddings"],
         fewshot=raw.get("fewshot", 1.0),
         merge_subsets=raw.get("merge_subsets", []),
@@ -103,6 +105,8 @@ def _validate(cfg):
         _fail(f"keys present in both search_space and fixed: {sorted(overlap)}")
     if not (ROOT / cfg.hf_loader).exists():
         _fail(f"loader not found: {cfg.hf_loader}")
+    if cfg.task_type == "sequence_classification" and not cfg.text_columns:
+        _fail("sequence_classification needs text_columns")
     if cfg.merge_subsets and cfg.subset in cfg.merge_subsets:
         _fail(f"subset {cfg.subset!r} names the pooled corpus, not one of merge_subsets")
     if cfg.hooks:

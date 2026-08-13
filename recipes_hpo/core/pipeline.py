@@ -16,6 +16,8 @@ from transformers import (
 from core import runtime
 from core.config import MODEL_HP
 
+ID_COLUMNS = ("id", "identifier")
+
 
 class SaveAndEvaluateLastStep(TrainerCallback):
     def on_step_end(self, args, state, control, **kwargs):
@@ -233,9 +235,8 @@ def _dump(cfg, metrics, best_hp, preds, refs, test, do_hpo, best_model_dir, prec
     # a debug run is kept out of the glob that feeds HPO reuse and the stats
     runs_dir = cfg.runs_dir / "debug" if cfg.debug else cfg.runs_dir
     runs_dir.mkdir(parents=True, exist_ok=True)
-    identifiers = (
-        list(test["id"]) if "id" in test.column_names else list(range(len(test)))
-    )
+    column = next((c for c in ID_COLUMNS if c in test.column_names), None)
+    identifiers = list(test[column]) if column else list(range(len(test)))
     payload = {
         "benchmark": {
             "corpus": cfg.corpus,

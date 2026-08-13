@@ -28,7 +28,7 @@ _HOMEPAGE = "DIAMED"
 
 _LICENSE = "Apache License 2.0"
 
-_URL = "https://huggingface.co/datasets/Dr-BERT/DiaMED/resolve/main/data.zip"
+_URL = "https://huggingface.co/datasets/DrBenchmark/DiaMED/resolve/main/_attic/data.zip"
 
 _CITATION = """\
 DIAMED

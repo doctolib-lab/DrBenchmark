@@ -24,3 +24,4 @@ tqdm==4.70.0                # data_loaders_hf/QUAERO.py
 transformers==4.57.6
 typer-slim==0.21.1
 xmltodict==1.0.4            # data_loaders_hf/{DEFT2020,MANTRAGSC}.py
+Pillow==12.3.0

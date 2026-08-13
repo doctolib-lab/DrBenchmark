@@ -37,7 +37,7 @@ _HOMEPAGE = "https://frenchmedmcqa.github.io"
 
 _LICENSE = "Apache License 2.0"
 
-_URL = "https://huggingface.co/datasets/Dr-BERT/FrenchMedMCQA/resolve/main/data.zip"
+_URL = "https://huggingface.co/datasets/DrBenchmark/FrenchMedMCQA/resolve/main/_attic/data.zip"
 
 _CITATION = """\
 @unpublished{labrak:hal-03824241,

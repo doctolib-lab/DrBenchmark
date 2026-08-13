@@ -10,12 +10,11 @@ TOKEN_COLUMN = "tokens"
 
 
 def prepare_datasets(cfg, tokenizer):
-    splits = data.load_splits(cfg, TOKEN_COLUMN)
+    key = lambda example: tuple(example[TOKEN_COLUMN])
+    splits = data.load_splits(cfg, key)
     label_list = label_names(splits["train"].features[cfg.label_column])
     negative_id = label_list.index("O") if "O" in label_list else None
-    train, val, test = data.dedup(
-        splits, cfg, TOKEN_COLUMN, cfg.label_column, negative_id
-    )
+    train, val, test = data.dedup(splits, cfg, key, cfg.label_column, negative_id)
 
     align = _align_slow if cfg.slow_tokenizer else _align_fast
 

@@ -16,7 +16,7 @@ ddd
 
 _HOMEPAGE = "ddd"
 
-_URL = "https://huggingface.co/datasets/Dr-BERT/MORFITT/resolve/main/data.zip"
+_URL = "https://huggingface.co/datasets/DrBenchmark/MORFITT/resolve/main/_attic/data.zip"
 
 _LICENSE = "unknown"
 

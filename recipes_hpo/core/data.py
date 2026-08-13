@@ -15,9 +15,9 @@ MERGE_SHUFFLE_SEED = 42
 MERGE_SHARDS = 5
 
 
-def load_splits(cfg, token_column=None):
+def load_splits(cfg, key=None):
     if cfg.merge_subsets:
-        return _merge(cfg, token_column)
+        return _merge(cfg, key)
     return _load(cfg, cfg.subset)
 
 
@@ -38,7 +38,7 @@ def _load(cfg, subset):
     )
 
 
-def _merge(cfg, token_column):
+def _merge(cfg, key):
     """Pool subsets declaring divergent label orders, remapped onto their union."""
     pooled, label_list = [], []
     for subset in cfg.merge_subsets:
@@ -50,7 +50,7 @@ def _merge(cfg, token_column):
         negative_id = names.index("O") if "O" in names else None
         # filtered before the shard: this is what decides each shard's content
         rows = rows.filter(
-            _keep(cfg, token_column, cfg.label_column, negative_id, None),
+            _keep(cfg, key, cfg.label_column, negative_id, None),
             load_from_cache_file=False,
         )
         for name in names:
@@ -89,18 +89,18 @@ def _merge(cfg, token_column):
     )
 
 
-def _keep(cfg, token_column, label_column, negative_id, seen):
+def _keep(cfg, key, label_column, negative_id, seen):
     """seen=None keeps duplicates; the filters themselves always apply."""
     rules = cfg.dedup
 
     def _filter(example):
-        if rules["drop_empty"] and len(example[token_column]) == 0:
+        value = key(example)
+        if rules["drop_empty"] and not value:
             return False
         if seen is not None:
-            key = tuple(example[token_column])
-            if key in seen:
+            if value in seen:
                 return False
-            seen.add(key)
+            seen.add(value)
         if rules["drop_all_negative"] and negative_id is not None:
             if all(tag == negative_id for tag in example[label_column]):
                 return False
@@ -109,13 +109,13 @@ def _keep(cfg, token_column, label_column, negative_id, seen):
     return _filter
 
 
-def dedup(splits, cfg, token_column, label_column, negative_id):
-    """Filters always apply; dedup.scope controls duplicate removal across splits."""
+def dedup(splits, cfg, key, label_column, negative_id):
+    """`key` maps an example to what makes it a duplicate; dedup.scope controls the scope."""
     rules = cfg.dedup
 
     def apply(split, seen):
         return splits[split].filter(
-            _keep(cfg, token_column, label_column, negative_id, seen),
+            _keep(cfg, key, label_column, negative_id, seen),
             load_from_cache_file=False,
         )
 

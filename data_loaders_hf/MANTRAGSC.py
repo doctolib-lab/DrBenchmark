@@ -69,7 +69,7 @@ _HOMEPAGE = "https://biosemantics.erasmusmc.nl/index.php/resources/mantra-gsc"
 
 _LICENSE = "CC_BY_4p0"
 
-_URL = "https://files.ifi.uzh.ch/cl/mantra/gsc/GSC-v1.1.zip"
+_URL = "https://huggingface.co/datasets/DrBenchmark/MANTRAGSC/resolve/main/_attic/GSC-v1.1.zip"
 
 _LANGUAGES_2 = {
 	"es": "Spanish",
