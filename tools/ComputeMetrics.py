@@ -9,15 +9,39 @@ path = sys.argv[1] if len(sys.argv) > 1 else "./recipes/"
 path = path.rstrip("/") + "/"
 run_label = os.path.basename(os.path.normpath(path)) or "recipes"
 
-dirs = [f.path for f in os.scandir(path) if f.is_dir()]
-# print(dirs)
+# <corpus>/runs (legacy tree) and <lang>/<corpus>/runs (migrated tree)
+run_dirs = sorted({os.path.dirname(p) for p in glob(f"{path}**/runs/*.json", recursive=True)})
 
 def contains(p, t):
     return p.find(t) != -1
 
+# task_type (migrated run JSONs) -> metric family -> metric name -> path in data["metrics"]
+KINDS = {
+    "token_classification": "seqeval",
+    "sequence_classification": "cls",
+    "multilabel_classification": "cls",
+    "regression": "regr",
+    "multiple_choice": "mcqa",
+}
+
+METRICS = {
+    "seqeval": {"overall_f1": ["overall_f1"], "overall_accuracy": ["overall_accuracy"]},
+    "cls": {"macro_f1": ["macro avg", "f1-score"], "weighted_f1": ["weighted avg", "f1-score"]},
+    "mcqa": {"hamming_score": ["hamming_score"], "exact_match": ["exact_match"]},
+    "regr": {"edrm": ["EDRM"], "spearman_correlation_coef": ["spearman_correlation_coef"]},
+}
+
+def collect(bucket, key, kind, metrics):
+    bucket.setdefault(key, {name: [] for name in METRICS[kind]})
+    for name, lookup in METRICS[kind].items():
+        value = metrics
+        for step in lookup:
+            value = value[step]
+        bucket[key][name].append(value)
+
 results = {}
 
-for d in dirs:
+for d in run_dirs:
 
     if "__pycache__" in d:
         continue
@@ -29,9 +53,7 @@ for d in dirs:
 
     print(d)
 
-    d_path = f"{d}/runs/"
-    files = [ f.path for f in os.scandir(d_path) if f.is_file() and str(f).find(".json") != -1 ]
-    # print(files)
+    files = sorted(glob(f"{d}/*.json"))
 
     for file_path in files:
         # print(file_path)
@@ -42,6 +64,21 @@ for d in dirs:
 
         if not isinstance(data, dict):
             print(f"Skipping {file_path}: not a dictionary")
+            continue
+
+        # migrated runs carry their identity; the path is never parsed
+        benchmark = data.get("benchmark")
+        if benchmark:
+            model_name = data["model_id"]
+            key = "|".join([
+                benchmark["corpus"],
+                benchmark["task"],
+                str(benchmark.get("subset", "none")),
+                benchmark["lang"],
+                str(benchmark.get("fewshot", 1.0)),
+            ])
+            results.setdefault(model_name, {})
+            collect(results[model_name], key, KINDS[benchmark["task_type"]], data["metrics"])
             continue
 
         # print(file_path)

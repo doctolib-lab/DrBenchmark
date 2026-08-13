@@ -1,0 +1,110 @@
+import argparse
+import uuid
+from pathlib import Path
+from types import SimpleNamespace
+
+import yaml
+
+from core.paths import ROOT
+
+FAMILIES = {
+    "token_classification",
+    "sequence_classification",
+    "multilabel_classification",
+    "regression",
+    "multiple_choice",
+}
+
+# hyperparameters consumed by the model config, not by TrainingArguments
+MODEL_HP = {"dropout"}
+
+DEDUP_SCOPES = {"none", "cascade", "against_test"}
+
+
+def _fail(message):
+    raise SystemExit(f"config error: {message}")
+
+
+def load(config_path, model_id, seed):
+    path = Path(config_path).resolve()
+    if not path.name.endswith("_hpo.yaml"):
+        _fail(f"{path.name} does not match *_hpo.yaml")
+
+    raw = yaml.safe_load(path.read_text())
+    recipe_dir = path.parent
+
+    dedup = {"scope": "none", "drop_empty": False, "drop_all_negative": False}
+    dedup.update(raw.get("dedup", {}))
+
+    cfg = SimpleNamespace(
+        task_type=raw["task_type"],
+        corpus=raw["corpus"],
+        task=raw["task"],
+        subset=raw["subset"],
+        lang=raw["lang"],
+        hf_loader=raw["hf_loader"],
+        label_column=raw["label_column"],
+        max_position_embeddings=raw["max_position_embeddings"],
+        fewshot=raw.get("fewshot", 1.0),
+        merge_subsets=raw.get("merge_subsets", []),
+        slow_tokenizer=raw.get("slow_tokenizer", False),
+        dedup=dedup,
+        metrics=raw["metrics"],
+        direction=raw["direction"],
+        threshold=raw.get("threshold"),
+        search_space=raw.get("search_space", {}),
+        fixed=raw.get("fixed", {}),
+        scheduler=raw.get("scheduler", {}),
+        n_trials=raw["n_trials"],
+        hooks=raw.get("hooks", {}),
+        trainer_overrides=raw.get("trainer_overrides", {}),
+        config_path=str(path),
+        recipe_dir=recipe_dir,
+        data_dir=recipe_dir / "data",
+        runs_dir=recipe_dir / "runs",
+        save_dir=recipe_dir / "save_models",
+        model_id=model_id,
+        seed=seed,
+    )
+    _validate(cfg)
+
+    cfg.offline = bool(yaml.safe_load((ROOT / "config.yaml").read_text())["offline"])
+    cfg.model_path = (
+        str(ROOT / "models" / model_id.lower().replace("/", "_"))
+        if cfg.offline
+        else model_id
+    )
+    cfg.output_name = f"{cfg.corpus}-{cfg.task}-{cfg.subset}-{uuid.uuid4().hex}"
+    return cfg
+
+
+def _validate(cfg):
+    if cfg.task_type not in FAMILIES:
+        _fail(f"unknown task_type {cfg.task_type!r}")
+    if cfg.lang != cfg.recipe_dir.parent.name:
+        _fail(f"lang {cfg.lang!r} != language directory {cfg.recipe_dir.parent.name!r}")
+    if cfg.corpus != cfg.recipe_dir.name:
+        _fail(f"corpus {cfg.corpus!r} != recipe directory {cfg.recipe_dir.name!r}")
+    if len(cfg.direction) != 2 or cfg.direction[0] not in ("max", "min"):
+        _fail(f"direction must be [max|min, maximize|minimize], got {cfg.direction!r}")
+    if cfg.direction[1] != {"max": "maximize", "min": "minimize"}[cfg.direction[0]]:
+        _fail(f"inconsistent direction {cfg.direction!r}")
+    if cfg.dedup["scope"] not in DEDUP_SCOPES:
+        _fail(f"dedup.scope must be one of {sorted(DEDUP_SCOPES)}")
+    overlap = set(cfg.search_space) & set(cfg.fixed)
+    if overlap:
+        _fail(f"keys present in both search_space and fixed: {sorted(overlap)}")
+    if not (ROOT / cfg.hf_loader).exists():
+        _fail(f"loader not found: {cfg.hf_loader}")
+    for key in ("merge_subsets", "hooks"):
+        if getattr(cfg, key):
+            _fail(f"{key} is declared but not implemented yet")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args()
+    return load(args.config, args.model, args.seed)
