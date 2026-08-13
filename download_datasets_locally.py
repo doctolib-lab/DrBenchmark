@@ -42,6 +42,7 @@ def save_locally(arr):
         f"data_loaders_hf/{corpus}.py",
         subset,
         data_dir=f"./recipes/{corpus.lower()}/data/",
+        trust_remote_code=True,
     )
     dataset.save_to_disk(f"./recipes/{corpus.lower()}/data/local_hf_{subset}/")
 

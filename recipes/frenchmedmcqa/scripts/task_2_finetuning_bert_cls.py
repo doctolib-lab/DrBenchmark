@@ -51,6 +51,7 @@ def main():
         dataset = load_dataset(
             "Dr-BERT/FrenchMedMCQA",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     labels_list = dataset["train"].features["number_correct_answers"].names

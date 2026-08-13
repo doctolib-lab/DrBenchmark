@@ -13,3 +13,5 @@ runs/
 logs/
 
 tmp*
+
+.venv/

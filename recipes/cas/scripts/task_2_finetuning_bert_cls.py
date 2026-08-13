@@ -52,6 +52,7 @@ def main():
             "Dr-BERT/CAS",
             name=str(args.subset),
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     labels_list = dataset["train"].features["label"].names

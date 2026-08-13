@@ -10,7 +10,7 @@ This is a fork of [DrBenchmark](https://github.com/DrBenchmark/DrBenchmark), ada
 
 ### Environment
 
-PyTorch is expected to be already installed; install the remaining dependencies with:
+Requires Python >=3.10 and <3.14 (`pyarrow==23.0.0` needs >=3.10; `ray==2.48.0` has no wheels for >=3.14). PyTorch is expected to be already installed; install the remaining dependencies with:
 
 ```bash
 pip install -r requirements_doctobert.txt
@@ -46,7 +46,7 @@ The biomedical domain has sparked a significant interest in the field of Natural
 
 ## Steps
 
-1. Add the files for the restricted corpus (CAS, ESSAI and CLISTER) in the `./recipes/<corpus_name>/data/` folder.
+1. CAS, ESSAI and CLISTER are downloaded automatically from `https://drbenchmark.univ-avignon.fr/` by their `data_loaders_hf/*.py` loading scripts — no manual file placement needed.
 2. Setup and activate the conda environement
 3. (Optionnal) In case you are running the benchmark on a offline machine / cluster, please build and save locally each datasets by simply using `python ./download_datasets_locally.py`, download all the models locally by using `python ./download_models_locally.py` and finally, set the value of `offline` to `True` in the `./config.yaml` file.
 4. Run the benchmark.

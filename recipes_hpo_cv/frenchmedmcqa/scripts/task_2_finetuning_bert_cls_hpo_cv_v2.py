@@ -59,6 +59,7 @@ def main():
         dataset = load_dataset(
             "Dr-BERT/FrenchMedMCQA",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     args.fold -= 1

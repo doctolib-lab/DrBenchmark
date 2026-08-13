@@ -149,6 +149,7 @@ def main():
             "Dr-BERT/MANTRAGSC",
             name=args.subset,
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     args.fold -= 1

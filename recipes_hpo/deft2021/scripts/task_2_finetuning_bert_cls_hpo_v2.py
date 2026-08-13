@@ -77,6 +77,7 @@ def main():
             "Dr-BERT/DEFT2021",
             name="cls",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     # Retrieve past best_hp_trial, if any:

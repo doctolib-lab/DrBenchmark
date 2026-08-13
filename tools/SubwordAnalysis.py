@@ -65,7 +65,7 @@ for m in models:
     for task in tasks:
 
         if task['dataset'] == None:
-            task['dataset'] = load_dataset(task['model'], task['subset'], data_dir=task['data_path'])["test"]
+            task['dataset'] = load_dataset(task['model'], task['subset'], data_dir=task['data_path'], trust_remote_code=True)["test"]
 
         t_key = f"{task['model']}-{task['subset']}"
         print(f">> {t_key}")

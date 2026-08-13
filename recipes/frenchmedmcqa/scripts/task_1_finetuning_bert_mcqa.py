@@ -47,6 +47,7 @@ def main():
         dataset = load_dataset(
             "Dr-BERT/FrenchMedMCQA",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     labels_list = ["c","a","e","d","b","be","ae","bc","bd","ab","de","cd","ac","ad","ce","bce","abc","cde","bcd","ace","ade","abe","acd","bde","abd","abde","abcd","bcde","abce","acde","abcde"]

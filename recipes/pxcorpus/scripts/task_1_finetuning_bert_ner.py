@@ -40,6 +40,7 @@ def main():
         dataset = load_dataset(
             "Dr-BERT/PxCorpus",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     label_list = dataset["train"].features["ner_tags"].feature.names

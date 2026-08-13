@@ -45,6 +45,7 @@ def main():
             "Dr-BERT/ESSAI",
             name=str(args.subset),
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     args.fold -= 1

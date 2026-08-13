@@ -59,6 +59,7 @@ def main():
         dataset = load_dataset(
             "Dr-BERT/DiaMED",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     # Retrieve past best_hp_trial, if any:

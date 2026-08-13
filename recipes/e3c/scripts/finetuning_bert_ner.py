@@ -56,6 +56,7 @@ def main():
             "Dr-BERT/E3C",
             name=args.subset,
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     train_dataset = dataset["train"]

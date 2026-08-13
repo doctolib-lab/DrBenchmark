@@ -67,6 +67,7 @@ def main():
             "Dr-BERT/DEFT2020",
             name="task_2",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     # Retrieve past best_hp_trial, if any:

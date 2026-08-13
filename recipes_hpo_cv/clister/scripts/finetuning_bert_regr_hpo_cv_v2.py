@@ -100,6 +100,7 @@ def main():
             "Dr-BERT/CLISTER",
             name="source",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
     args.fold -= 1
     # Retrieve past best_hp_trial, if any:

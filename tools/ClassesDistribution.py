@@ -52,7 +52,7 @@ for subset in ["train","validation","test"]:
 
     for task in tasks:
 
-        dataset = load_dataset(task['corpus'], task['subset'], data_dir=task['data_path'])[subset]
+        dataset = load_dataset(task['corpus'], task['subset'], data_dir=task['data_path'], trust_remote_code=True)[subset]
 
         t_key = f"{task['corpus']}-{task['subset']}-{task['task']}"
         print(f">> {t_key}")

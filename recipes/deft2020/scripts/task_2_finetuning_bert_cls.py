@@ -53,6 +53,7 @@ def main():
             "Dr-BERT/DEFT2020",
             name="task_2",
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     labels_list = dataset["train"].features["correct_cible"].names

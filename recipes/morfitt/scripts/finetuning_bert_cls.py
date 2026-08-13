@@ -73,6 +73,7 @@ def main():
             "Dr-BERT/MORFITT",
             name=args.subset,
             data_dir=args.data_dir,
+            trust_remote_code=True,
         )
 
     labels_list = dataset["train"].features["specialities"].feature.names
