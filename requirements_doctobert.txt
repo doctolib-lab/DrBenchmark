@@ -1,15 +1,26 @@
 # DrBenchmark dependencies used for the DoctoBERT release (PyTorch installed separately).
 accelerate>=0.26.0
+beautifulsoup4==4.15.0      # data_loaders_hf/{E3C,PxCorpus}.py
 datasets==3.6.0
+evaluate==0.4.6             # metrics/seqeval.py loader
 hf-xet==1.2.0
 huggingface-hub==0.36.0
 hyperopt==0.2.7
+lxml==6.1.1                 # BeautifulSoup(..., "xml") in data_loaders_hf/E3C.py
+numpy==2.4.6
+pandas==3.0.5               # data_loaders_hf/{CLISTER,DEFT2020}.py
 py4j==0.10.9.9
 pyarrow==23.0.0
+pyyaml==6.0.3               # recipe configs
 ray==2.48.0
+scikit-learn==1.9.0         # classification / multilabel families
+scipy==1.17.1               # spearmanr, regression family
 seqeval==1.2.2
+setuptools<81               # hyperopt 0.2.7 imports pkg_resources, dropped in setuptools 81
 syntok==1.4.4
 tensorboardX==2.6.4
 tokenizers==0.22.1
+tqdm==4.70.0                # data_loaders_hf/QUAERO.py
 transformers==4.57.6
 typer-slim==0.21.1
+xmltodict==1.0.4            # data_loaders_hf/{DEFT2020,MANTRAGSC}.py
