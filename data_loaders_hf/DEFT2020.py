@@ -41,6 +41,8 @@ Accès aux données hors challenge (DEFT 2019, 2020) : corpus de 717 cas cliniqu
 
 _HOMEPAGE = "https://deft.lisn.upsaclay.fr/2020/"
 
+_URL = "https://huggingface.co/datasets/DrBenchmark/DEFT2020/resolve/main/_attic/data.zip"
+
 _LICENSE = "other"
 
 _CITATION = """\
@@ -124,7 +126,7 @@ class FrenchMedMCQA(datasets.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager):
         """Returns SplitGenerators."""
 
-        data_dir = self.config.data_dir
+        data_dir = dl_manager.download_and_extract(_URL).rstrip("/")
 
         if self.config.name == "task_1":
 
