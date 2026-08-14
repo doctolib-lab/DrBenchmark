@@ -16,7 +16,12 @@ FAMILIES = {
     "multiple_choice",
 }
 
-TEXT_FAMILIES = {"sequence_classification", "multilabel_classification", "regression"}
+TEXT_FAMILIES = {
+    "sequence_classification",
+    "multilabel_classification",
+    "regression",
+    "multiple_choice",
+}
 
 # hyperparameters consumed by the model config, not by TrainingArguments
 MODEL_HP = {"dropout"}
@@ -113,6 +118,8 @@ def _validate(cfg):
         _fail("multilabel_classification needs threshold")
     if cfg.task_type == "regression" and len(cfg.text_columns) != 2:
         _fail(f"regression takes exactly two text_columns, got {cfg.text_columns!r}")
+    if cfg.task_type == "multiple_choice" and len(cfg.text_columns) < 3:
+        _fail(f"multiple_choice takes a source and its candidates, got {cfg.text_columns!r}")
     if cfg.merge_subsets and cfg.subset in cfg.merge_subsets:
         _fail(f"subset {cfg.subset!r} names the pooled corpus, not one of merge_subsets")
     if cfg.hooks:

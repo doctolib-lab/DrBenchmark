@@ -19,6 +19,7 @@ IMPLEMENTED = {
     "sequence_classification": "core.families.sequence_classification",
     "multilabel_classification": "core.families.multilabel_classification",
     "regression": "core.families.regression",
+    "multiple_choice": "core.families.multiple_choice",
 }
 
 
