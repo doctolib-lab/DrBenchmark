@@ -121,7 +121,7 @@ class MANTRAGSC(datasets.GeneratorBasedBuilder):
 		if self.config.name.find("emea") != -1:
 			names = ['B-ANAT', 'I-ANAT', 'I-PHEN', 'B-PROC', 'I-CHEM', 'I-PHYS', 'B-DEVI', 'O', 'B-PHYS', 'I-DEVI', 'B-OBJC', 'I-DISO', 'B-PHEN', 'I-LIVB', 'B-DISO', 'B-LIVB', 'B-CHEM', 'I-PROC']
 		elif self.config.name.find("medline") != -1:
-			names = ['B-ANAT', 'I-ANAT', 'B-PROC', 'I-CHEM', 'I-PHYS', 'B-GEOG', 'B-DEVI', 'O', 'B-PHYS', 'I-LIVB', 'B-OBJC', 'I-DISO', 'I-DEVI', 'B-PHEN', 'B-DISO', 'B-LIVB', 'B-CHEM', 'I-PROC']
+			names = ['B-ANAT', 'I-ANAT', 'B-PROC', 'I-CHEM', 'I-PHYS', 'B-GEOG', 'I-GEOG', 'B-DEVI', 'O', 'B-PHYS', 'I-LIVB', 'B-OBJC', 'I-OBJC', 'I-DISO', 'I-DEVI', 'B-PHEN', 'I-PHEN', 'B-DISO', 'B-LIVB', 'B-CHEM', 'I-PROC']
 		elif self.config.name.find("patents") != -1:
 			names = ['B-ANAT', 'I-ANAT', 'B-PROC', 'I-CHEM', 'I-PHYS', 'B-DEVI', 'O', 'I-LIVB', 'B-OBJC', 'I-DISO', 'B-PHEN', 'I-PROC', 'B-DISO', 'I-DEVI', 'B-LIVB', 'B-CHEM', 'B-PHYS']
 		
