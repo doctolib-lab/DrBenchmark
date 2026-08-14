@@ -1,8 +1,10 @@
-import numpy as np
+from datasets import Sequence, Value
+from scipy.special import expit
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
-    precision_recall_fscore_support,
+    f1_score,
+    roc_auc_score,
 )
 from transformers import AutoModelForSequenceClassification, DataCollatorWithPadding
 
@@ -22,17 +24,25 @@ def prepare_datasets(cfg, tokenizer):
             truncation=True,
             max_length=cfg.max_position_embeddings,
         )
-        encoded["label"] = example[cfg.label_column]
+        
+        multi_hot = [0.0] * len(label_list)
+        for label_id in example[cfg.label_column]:
+            multi_hot[label_id] = 1.0
+        encoded["labels"] = multi_hot
         return encoded
 
-    train = train.map(tokenize, keep_in_memory=True)
+    def encode(split):
+        # float32: BCEWithLogitsLoss rejects the float64 that map() infers here
+        return split.map(tokenize, keep_in_memory=True).cast_column(
+            "labels", Sequence(Value("float32"))
+        )
+
+    train = encode(train)
     for _ in range(3):
         train = train.shuffle(seed=cfg.seed)
     if cfg.fewshot != 1.0:
         train = train.select(range(int(len(train) * cfg.fewshot)))
-    val = val.map(tokenize, keep_in_memory=True)
-    test = test.map(tokenize, keep_in_memory=True)
-    return train, val, test, label_list
+    return train, encode(val), encode(test), label_list
 
 
 def build_collator(cfg, tokenizer):
@@ -41,7 +51,9 @@ def build_collator(cfg, tokenizer):
 
 def build_model(cfg, label_list, dropout=None, path=None):
     model = AutoModelForSequenceClassification.from_pretrained(
-        path or cfg.model_path, num_labels=len(label_list)
+        path or cfg.model_path,
+        num_labels=len(label_list),
+        problem_type="multi_label_classification",
     )
     model.config.label2id = {name: str(i) for i, name in enumerate(label_list)}
     model.config.id2label = {str(i): name for i, name in enumerate(label_list)}
@@ -57,24 +69,37 @@ def build_model(cfg, label_list, dropout=None, path=None):
 
 
 def build_metrics(cfg, label_list, experiment_id):
+    def binarize(logits):
+        return (expit(logits) >= cfg.threshold).astype(float)
+
     def compute_metrics(eval_prediction):
         labels = eval_prediction.label_ids
-        preds = eval_prediction.predictions.argmax(-1)
-        precision, recall, f1, _ = precision_recall_fscore_support(
-            labels, preds, average="weighted", zero_division=0
-        )
+        preds = binarize(eval_prediction.predictions)
         return {
             "accuracy": accuracy_score(labels, preds),
-            "f1": f1,
-            "precision": precision,
-            "recall": recall,
+            "f1": f1_score(labels, preds, average="weighted", zero_division=0),
+            "macro_f1": f1_score(labels, preds, average="macro", zero_division=0),
+            "micro_f1": f1_score(labels, preds, average="micro", zero_division=0),
+            "roc_auc": _roc_auc(labels, preds),
         }
 
     def report(predictions, labels):
-        preds = np.argmax(predictions, axis=1)
-        # no target_names: naming the classes would add the absent ones and move macro avg
-        metrics = classification_report(labels, preds, output_dict=True, zero_division=0)
-        decode = lambda ids: [label_list[i] for i in ids]
+        preds = binarize(predictions)
+        # target_names is safe here: an indicator matrix carries every label as a column
+        metrics = classification_report(
+            labels, preds, target_names=label_list, output_dict=True, zero_division=0
+        )
+        decode = lambda matrix: [
+            [label_list[i] for i, flag in enumerate(row) if flag] for row in matrix
+        ]
         return metrics, decode(preds), decode(labels)
 
     return compute_metrics, report
+
+
+def _roc_auc(labels, preds):
+    """A label nothing predicts leaves its column constant, which roc_auc rejects."""
+    try:
+        return roc_auc_score(labels, preds, average="micro")
+    except ValueError:
+        return 0.0

@@ -35,6 +35,8 @@ ddd
 
 _HOMEPAGE = "ddd"
 
+_URL = "https://huggingface.co/datasets/DrBenchmark/DEFT2021/resolve/main/_attic/data.zip"
+
 _LICENSE = "unknown"
 
 _SPECIALITIES = ['immunitaire', 'endocriniennes', 'blessures', 'chimiques', 'etatsosy', 'nutritionnelles', 'infections', 'virales', 'parasitaires', 'tumeur', 'osteomusculaires', 'stomatognathique', 'digestif', 'respiratoire', 'ORL', 'nerveux', 'oeil', 'homme', 'femme', 'cardiovasculaires', 'hemopathies', 'genetique', 'peau']
@@ -94,12 +96,8 @@ class DEFT2021(datasets.GeneratorBasedBuilder):
 
     def _split_generators(self, dl_manager):
 
-        if self.config.data_dir is None:
-            raise ValueError("This is a local dataset. Please pass the data_dir kwarg to load_dataset.")
-        
-        else:
-            data_dir = self.config.data_dir
-            
+        data_dir = dl_manager.download_and_extract(_URL).rstrip("/")
+
         return [
             datasets.SplitGenerator(
                 name=datasets.Split.TRAIN,

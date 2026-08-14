@@ -15,6 +15,23 @@ MERGE_SHUFFLE_SEED = 42
 MERGE_SHARDS = 5
 
 
+def text_builder(cfg, tokenizer):
+    """The sentence fed to the model, and what makes two examples duplicates."""
+    separator = (
+        f" {tokenizer.sep_token} "  # spaced, or a word-piece tokenizer glues it to the text
+        if cfg.text_separator == "sep_token"
+        else cfg.text_separator
+    )
+
+    def build(example):
+        parts = [example[column] for column in cfg.text_columns]
+        return separator.join(
+            " ".join(part) if isinstance(part, list) else part for part in parts
+        )
+
+    return build
+
+
 def load_splits(cfg, key=None):
     if cfg.merge_subsets:
         return _merge(cfg, key)

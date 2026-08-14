@@ -17,6 +17,7 @@ from core.config import parse_args
 IMPLEMENTED = {
     "token_classification": "core.families.token_classification",
     "sequence_classification": "core.families.sequence_classification",
+    "multilabel_classification": "core.families.multilabel_classification",
 }
 
 

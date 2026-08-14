@@ -1,0 +1,34 @@
+task_type: multilabel_classification
+corpus: deft2021
+task: cls
+subset: cls
+lang: fr
+
+hf_loader: data_loaders_hf/DEFT2021.py
+label_column: specialities
+text_columns: [text]
+max_position_embeddings: 512
+fewshot: 1.0
+dedup:
+  scope: cascade
+  drop_empty: false
+  drop_all_negative: false
+
+metrics: "f1"
+direction: ["max", "maximize"]
+threshold: 0.70
+
+search_space:
+  learning_rate: tune.loguniform(1e-6, 1e-4)
+  num_train_epochs: tune.qrandint(10, 50, 10)
+  gradient_accumulation_steps: tune.randint(1, 5)
+  weight_decay: tune.uniform(0, .5)
+  warmup_ratio: tune.uniform(0, .5)
+  dropout: tune.uniform(0, .5)
+fixed:
+  per_device_train_batch_size: 16
+scheduler:
+  reduction_factor: 2
+  grace_period: 4
+  max_t: 100
+n_trials: 20

@@ -16,6 +16,8 @@ FAMILIES = {
     "multiple_choice",
 }
 
+TEXT_FAMILIES = {"sequence_classification", "multilabel_classification"}
+
 # hyperparameters consumed by the model config, not by TrainingArguments
 MODEL_HP = {"dropout"}
 
@@ -105,8 +107,10 @@ def _validate(cfg):
         _fail(f"keys present in both search_space and fixed: {sorted(overlap)}")
     if not (ROOT / cfg.hf_loader).exists():
         _fail(f"loader not found: {cfg.hf_loader}")
-    if cfg.task_type == "sequence_classification" and not cfg.text_columns:
-        _fail("sequence_classification needs text_columns")
+    if cfg.task_type in TEXT_FAMILIES and not cfg.text_columns:
+        _fail(f"{cfg.task_type} needs text_columns")
+    if cfg.task_type == "multilabel_classification" and cfg.threshold is None:
+        _fail("multilabel_classification needs threshold")
     if cfg.merge_subsets and cfg.subset in cfg.merge_subsets:
         _fail(f"subset {cfg.subset!r} names the pooled corpus, not one of merge_subsets")
     if cfg.hooks:
