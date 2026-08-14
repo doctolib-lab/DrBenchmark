@@ -95,7 +95,6 @@ def _align_fast(examples, tokenizer, cfg):
         list(examples[TOKEN_COLUMN]),
         truncation=True,
         max_length=cfg.max_position_embeddings,
-        padding="max_length",
         is_split_into_words=True,
     )
     labels = []
@@ -117,7 +116,6 @@ def _align_slow(examples, tokenizer, cfg):
     limit = cfg.max_position_embeddings
     bos = tokenizer("<s>")["input_ids"][1]
     eos = tokenizer("</s>")["input_ids"][1]
-    pad = tokenizer("<pad>")["input_ids"][1]
 
     all_ids, all_labels = [], []
     for tokens, label in zip(examples[TOKEN_COLUMN], examples[cfg.label_column]):
@@ -129,10 +127,6 @@ def _align_slow(examples, tokenizer, cfg):
         ids, labels = ids[: limit - 1], labels[: limit - 1]
         ids.append(eos)
         labels.append(-100)
-        padding = limit - len(ids)
-        if padding > 0:
-            ids.extend([pad] * padding)
-            labels.extend([-100] * padding)
         all_ids.append(ids)
         all_labels.append(labels)
     return {"input_ids": all_ids, "labels": all_labels}

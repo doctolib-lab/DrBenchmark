@@ -4,7 +4,7 @@ from sklearn.metrics import (
     classification_report,
     precision_recall_fscore_support,
 )
-from transformers import AutoModelForSequenceClassification, default_data_collator
+from transformers import AutoModelForSequenceClassification, DataCollatorWithPadding
 
 from core import data
 from core.labels import label_names
@@ -21,7 +21,6 @@ def prepare_datasets(cfg, tokenizer):
             text(example),
             truncation=True,
             max_length=cfg.max_position_embeddings,
-            padding="max_length",
         )
         encoded["label"] = example[cfg.label_column]
         return encoded
@@ -37,7 +36,7 @@ def prepare_datasets(cfg, tokenizer):
 
 
 def build_collator(cfg, tokenizer):
-    return default_data_collator
+    return DataCollatorWithPadding(tokenizer)
 
 
 def build_model(cfg, label_list, dropout=None, path=None):
