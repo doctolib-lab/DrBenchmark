@@ -7,7 +7,6 @@ from sklearn.metrics import (
 from transformers import AutoModelForSequenceClassification
 
 from core import data
-from core.labels import label_names
 
 
 def prepare_datasets(cfg, tokenizer):
@@ -17,7 +16,7 @@ def prepare_datasets(cfg, tokenizer):
         tuple(sorted(example[column] for column in candidates)),
     )
     splits = data.load_splits(cfg, key)
-    label_list = label_names(splits["train"].features[cfg.label_column])
+    label_list = data.label_names(splits["train"].features[cfg.label_column])
     if len(label_list) != len(candidates):
         raise SystemExit(
             f"{len(candidates)} candidate columns for {len(label_list)} labels: "

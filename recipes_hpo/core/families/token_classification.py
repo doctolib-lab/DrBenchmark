@@ -3,7 +3,6 @@ import numpy as np
 from transformers import AutoModelForTokenClassification, DataCollatorForTokenClassification
 
 from core import data
-from core.labels import label_names
 from core.paths import ROOT
 
 TOKEN_COLUMN = "tokens"
@@ -12,7 +11,7 @@ TOKEN_COLUMN = "tokens"
 def prepare_datasets(cfg, tokenizer):
     key = lambda example: tuple(example[TOKEN_COLUMN])
     splits = data.load_splits(cfg, key)
-    label_list = label_names(splits["train"].features[cfg.label_column])
+    label_list = data.label_names(splits["train"].features[cfg.label_column])
     negative_id = label_list.index("O") if "O" in label_list else None
     train, val, test = data.dedup(splits, cfg, key, cfg.label_column, negative_id)
 

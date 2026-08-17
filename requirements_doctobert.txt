@@ -1,7 +1,7 @@
 # DrBenchmark dependencies used for the DoctoBERT release (PyTorch installed separately).
 accelerate>=0.26.0
 beautifulsoup4==4.15.0      # data_loaders_hf/{E3C,PxCorpus}.py
-datasets==3.6.0
+datasets>=2.13.0,<4.0.0     # <4: dataset scripts (GeneratorBasedBuilder) were removed in 4.0, and french loaders still use them
 evaluate==0.4.6             # metrics/seqeval.py loader
 hf-xet==1.2.0
 huggingface-hub==0.36.0

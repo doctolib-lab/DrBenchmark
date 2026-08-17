@@ -41,7 +41,8 @@ Accès aux données hors challenge (DEFT 2019, 2020) : corpus de 717 cas cliniqu
 
 _HOMEPAGE = "https://deft.lisn.upsaclay.fr/2020/"
 
-_URL = "https://huggingface.co/datasets/DrBenchmark/DEFT2020/resolve/main/_attic/data.zip"
+_URL = "https://huggingface.co/datasets/DrBenchmark/DEFT2020/resolve/main/_attic/data.zip" # careful : not original link, this cannot be used as we need an agreement to access the data 
+# don't forget to change it before publishing the repo
 
 _LICENSE = "other"
 

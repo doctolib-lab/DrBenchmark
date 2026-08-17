@@ -7,13 +7,12 @@ from sklearn.metrics import (
 from transformers import AutoModelForSequenceClassification, DataCollatorWithPadding
 
 from core import data
-from core.labels import label_names
 
 
 def prepare_datasets(cfg, tokenizer):
     text = data.text_builder(cfg, tokenizer)
     splits = data.load_splits(cfg, text)
-    label_list = label_names(splits["train"].features[cfg.label_column])
+    label_list = data.label_names(splits["train"].features[cfg.label_column])
     train, val, test = data.dedup(splits, cfg, text, cfg.label_column, None)
 
     def tokenize(example):

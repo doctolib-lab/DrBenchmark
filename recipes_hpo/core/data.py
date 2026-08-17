@@ -1,6 +1,9 @@
+import importlib.util
+
 from datasets import (
     ClassLabel,
     DatasetDict,
+    DownloadManager,
     Features,
     Sequence,
     concatenate_datasets,
@@ -8,11 +11,19 @@ from datasets import (
     load_from_disk,
 )
 
-from core.labels import label_names
 from core.paths import ROOT
 
 MERGE_SHUFFLE_SEED = 42
 MERGE_SHARDS = 5
+
+
+def label_names(feature):
+    """Loaders declare labels as [ClassLabel], Sequence(ClassLabel) or ClassLabel."""
+    if isinstance(feature, list):
+        return list(feature[0].names)
+    if hasattr(feature, "feature"):
+        return list(feature.feature.names)
+    return list(feature.names)
 
 
 def text_builder(cfg, tokenizer):
@@ -47,12 +58,35 @@ def _load(cfg, subset):
                 f"run: python {ROOT}/recipes_hpo/core/prepare_data.py --config {cfg.config_path}"
             )
         return load_from_disk(str(local))
-    return load_dataset(
-        str(ROOT / cfg.hf_loader),
-        name=subset,
-        data_dir=str(cfg.data_dir),
-        trust_remote_code=True,
-    )
+    return build_dataset(cfg, subset)
+
+
+def build_dataset(cfg, subset):
+    """A loader exposing build() is called directly; the others go through load_dataset()."""
+    path = ROOT / cfg.hf_loader
+    module = _import(path)
+
+    if not hasattr(module, "build"):
+        return load_dataset(
+            str(path), name=subset, data_dir=str(cfg.data_dir), trust_remote_code=True
+        )
+
+    # invariant 4, checked where the module is already imported so legacy loaders pay nothing
+    if subset not in module.SUBSETS:
+        raise SystemExit(
+            f"config error: subset {subset!r} not declared by {path.name}; "
+            f"SUBSETS = {module.SUBSETS}"
+        )
+
+    cfg.data_dir.mkdir(parents=True, exist_ok=True)
+    return module.build(subset, cfg.data_dir, DownloadManager(dataset_name=path.stem))
+
+
+def _import(path):
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _merge(cfg, key):
