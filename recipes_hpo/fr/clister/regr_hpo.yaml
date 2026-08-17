@@ -4,7 +4,7 @@ task: regr
 subset: source
 lang: fr
 
-hf_loader: data_loaders_hf/CLISTER.py
+hf_loader: data_loaders_hf/fr/CLISTER.py
 label_column: label
 text_columns: [text_1, text_2]
 max_position_embeddings: 512

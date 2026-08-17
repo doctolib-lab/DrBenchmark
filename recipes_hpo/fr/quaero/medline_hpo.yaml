@@ -4,7 +4,7 @@ task: ner
 subset: medline
 lang: fr
 
-hf_loader: data_loaders_hf/QUAERO.py
+hf_loader: data_loaders_hf/fr/QUAERO.py
 label_column: ner_tags
 max_position_embeddings: 512
 fewshot: 1.0

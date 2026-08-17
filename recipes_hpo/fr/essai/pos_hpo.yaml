@@ -4,7 +4,7 @@ task: pos
 subset: pos
 lang: fr
 
-hf_loader: data_loaders_hf/ESSAI.py
+hf_loader: data_loaders_hf/fr/ESSAI.py
 label_column: pos_tags
 max_position_embeddings: 512
 fewshot: 1.0

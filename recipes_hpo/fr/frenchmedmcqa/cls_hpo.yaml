@@ -4,7 +4,7 @@ task: cls
 subset: default
 lang: fr
 
-hf_loader: data_loaders_hf/FrenchMedMCQA.py
+hf_loader: data_loaders_hf/fr/FrenchMedMCQA.py
 label_column: number_correct_answers
 text_columns: [question, answer_a, answer_b, answer_c, answer_d, answer_e]
 text_separator: sep_token

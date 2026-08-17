@@ -32,6 +32,10 @@ ds = [
 
 
 
+# loaders are filed by the language they serve; anything unlisted is French
+_LANG = {"E3C": "multilingual", "MANTRAGSC": "multilingual", "CANTEMIST": "es"}
+
+
 def save_locally(arr):
 
     print(arr)
@@ -39,7 +43,7 @@ def save_locally(arr):
     corpus, subset = arr
 
     dataset = load_dataset(
-        f"data_loaders_hf/{corpus}.py",
+        f"data_loaders_hf/{_LANG.get(corpus, 'fr')}/{corpus}.py",
         subset,
         data_dir=f"./recipes/{corpus.lower()}/data/",
         trust_remote_code=True,
