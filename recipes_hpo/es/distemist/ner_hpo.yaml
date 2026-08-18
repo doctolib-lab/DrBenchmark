@@ -1,0 +1,32 @@
+task_type: token_classification
+corpus: distemist
+task: ner
+subset: source
+lang: es
+
+hf_loader: data_loaders_hf/es/DISTEMIST.py
+label_column: ner_tags
+max_position_embeddings: 512
+fewshot: 1.0
+dedup:
+  scope: cascade
+  drop_empty: true
+  drop_all_negative: true
+
+metrics: "f1"
+direction: ["max", "maximize"]
+
+search_space:
+  learning_rate: tune.loguniform(1e-6, 1e-4)
+  num_train_epochs: tune.qrandint(10, 20, 10)
+  gradient_accumulation_steps: tune.randint(1, 5)
+  weight_decay: tune.uniform(0, .5)
+  warmup_ratio: tune.uniform(0, .5)
+  dropout: tune.uniform(0, .5)
+fixed:
+  per_device_train_batch_size: 16
+scheduler:
+  reduction_factor: 2
+  grace_period: 2
+  max_t: 100
+n_trials: 20
