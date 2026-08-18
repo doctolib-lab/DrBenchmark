@@ -15,6 +15,7 @@
 
 """MEDDOCAN: Spanish clinical case reports annotated with protected health information."""
 
+import re
 from pathlib import Path
 
 from datasets import ClassLabel, Dataset, DatasetDict, Features, Sequence, Value
@@ -92,6 +93,8 @@ FEATURES = Features(
 # beyond this a line is prose, not a header field, and long enough to reach the position limit
 _MAX_LINE_TOKENS = 128
 
+_SWALLOWED = re.compile(r"\S+")
+
 _tokenizer = Tokenizer()
 
 
@@ -144,24 +147,44 @@ def _sentences(text):
 
     for line in text.split("\n"):
 
-        tokens = _offsets(_tokenizer.tokenize(line), offset)
+        tokens = _offsets(_tokenizer.tokenize(line), offset, text)
 
         if len(tokens) > _MAX_LINE_TOKENS:
             for paragraph in segmenter.analyze(line):
                 for sentence in paragraph:
-                    yield _offsets(sentence, offset)
+                    yield _offsets(sentence, offset, text)
         elif tokens:
             yield tokens
 
         offset += len(line) + 1
 
 
-def _offsets(tokens, offset):
+def _offsets(tokens, offset, text):
     """Brat offsets are absolute; syntok reports them from the start of the string it was given."""
-    return [
+    spans = [
         (offset + token.offset, offset + token.offset + len(token.value), token.value)
         for token in tokens
     ]
+    return _restore(spans, text)
+
+
+def _restore(spans, text):
+    """syntok reports "-" and "_" as spacing rather than as tokens, which would drop them from a
+    corpus whose dates and identifiers are hyphenated; the official SPACCC tokenisation, which the
+    PharmaCoNER and CANTEMIST CoNLL files carry, keeps them."""
+    restored = []
+
+    for index, span in enumerate(spans):
+
+        if index:
+            previous = spans[index - 1][1]
+            for run in _SWALLOWED.finditer(text[previous : span[0]]):
+                start = previous + run.start()
+                restored.append((start, start + len(run.group()), run.group()))
+
+        restored.append(span)
+
+    return restored
 
 
 def _tag(sentence, spans):
